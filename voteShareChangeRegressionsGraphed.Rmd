@@ -39,7 +39,9 @@ No doubt political science journals will soon be awash with papers explaining ho
 
 # Scatter plots
 
-In particular they [tweeted](https://twitter.com/ChrisGiles_/status/873178948309577728) analysis of the percentage point change in vote share (so the change in the % of vote) in most of the constituencies that had declared to date. As an example the chart below shows the % point Conservative vote change against the % who voted to leave the EU. A pretty clear linear correlation with a few interesting looking outliers...
+In particular they [tweeted](https://twitter.com/ChrisGiles_/status/873178948309577728) analysis of the percentage point change in vote share (so the change in the % of vote) in most of the constituencies that had declared to date with the exception of Northern Ireland. 
+
+As an example the chart below shows the % point Conservative vote change against the % who voted to leave the EU. A pretty clear linear correlation with a few interesting looking outliers...
 
 ![% point Conservative vote change vs % voted to leave EU (Source: Chris Giles & Gemma Tetlow)](https://pbs.twimg.com/media/DB4nnvBXcAIJmQ1.jpg)
 
