@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Ben Anderson (b.anderson@soton.ac.uk @dataknut)" />
+
+
+<title>UK General Election 2017: Visualising Vote Change Models</title>
+
+<script src="voteShareChangeRegressionsGraphed_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="voteShareChangeRegressionsGraphed_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="voteShareChangeRegressionsGraphed_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="voteShareChangeRegressionsGraphed_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="voteShareChangeRegressionsGraphed_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="voteShareChangeRegressionsGraphed_files/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="voteShareChangeRegressionsGraphed_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="voteShareChangeRegressionsGraphed_files/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="voteShareChangeRegressionsGraphed_files/navigation-1.1/tabsets.js"></script>
+<link href="voteShareChangeRegressionsGraphed_files/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="voteShareChangeRegressionsGraphed_files/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3,h4",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">UK General Election 2017: Visualising Vote Change Models</h1>
+<h4 class="author"><em>Ben Anderson (<a href="mailto:b.anderson@soton.ac.uk">b.anderson@soton.ac.uk</a> <code>@dataknut</code>)</em></h4>
+<h4 class="date"><em>Last run at: 2017-06-11 11:19:07</em></h4>
+
+</div>
+
+
+<p>No doubt political science journals will soon be awash with papers explaining how the 8th June UK General Election 2017 results came to be. While we wait for these to wend their way through the writing and reviewing process, the FT’s <a href="https://twitter.com/ChrisGiles_">Chris Giles</a> and <a href="https://twitter.com/gemmatetlow">Gemma Tetlow</a> provided us with some early insights as the results and data emerged on June 9th.</p>
+<div id="scatter-plots" class="section level1">
+<h1><span class="header-section-number">1</span> Scatter plots</h1>
+<p>In particular they <a href="https://twitter.com/ChrisGiles_/status/873178948309577728">tweeted</a> analysis of the percentage point change in vote share (so the change in the % of vote) in most of the constituencies that had declared to date. As an example the chart below shows the % point Conservative vote change against the % who voted to leave the EU. A pretty clear linear correlation with a few interesting looking outliers…</p>
+<div class="figure">
+<img src="https://pbs.twimg.com/media/DB4nnvBXcAIJmQ1.jpg" alt="% point Conservative vote change vs % voted to leave EU (Source: Chris Giles &amp; Gemma Tetlow)" />
+<p class="caption">% point Conservative vote change vs % voted to leave EU (Source: Chris Giles &amp; Gemma Tetlow)</p>
+</div>
+</div>
+<div id="regression-tables" class="section level1">
+<h1><span class="header-section-number">2</span> Regression tables</h1>
+<p>More interestingly (for me) Chris also tweeted the <a href="https://twitter.com/ChrisGiles_/status/873180690296307713/photo/1">STATA regression model results</a> that were used to draw the regression line in the above chart, in several other charts and in a series of <a href="https://twitter.com/ChrisGiles_/status/873178948309577728">highlights</a> they tweeted.</p>
+<p>Now I’m as fond of regression tables as the next data knut but I wondered if there might be a better way to look at them. Thanks to Chris’s table-tweet, and relying on <a href="https://twitter.com/bengoldacre/status/873210437327867905">Ben Goldacre’s interpretation</a> of the variable labels, here are the basic results:</p>
+<table>
+<caption>% Labour vote share change regression results (Data source: Chris Giles &amp; Gemma Tetlow)</caption>
+<thead>
+<tr class="header">
+<th align="left">varName</th>
+<th align="right">Coefficient</th>
+<th align="right">SE</th>
+<th align="right">lowerCI</th>
+<th align="right">upperCI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">% increase in turnout</td>
+<td align="right">0.135</td>
+<td align="right">0.076</td>
+<td align="right">-0.015</td>
+<td align="right">0.285</td>
+</tr>
+<tr class="even">
+<td align="left">% leave EU</td>
+<td align="right">-0.127</td>
+<td align="right">0.036</td>
+<td align="right">-0.197</td>
+<td align="right">-0.057</td>
+</tr>
+<tr class="odd">
+<td align="left">% Graduates</td>
+<td align="right">-0.097</td>
+<td align="right">0.040</td>
+<td align="right">-0.175</td>
+<td align="right">-0.018</td>
+</tr>
+<tr class="even">
+<td align="left">% 18-24</td>
+<td align="right">0.240</td>
+<td align="right">0.054</td>
+<td align="right">0.135</td>
+<td align="right">0.345</td>
+</tr>
+<tr class="odd">
+<td align="left">% 65+</td>
+<td align="right">-0.019</td>
+<td align="right">0.049</td>
+<td align="right">-0.115</td>
+<td align="right">0.077</td>
+</tr>
+<tr class="even">
+<td align="left">Scotland</td>
+<td align="right">-8.003</td>
+<td align="right">1.041</td>
+<td align="right">-10.043</td>
+<td align="right">-5.963</td>
+</tr>
+<tr class="odd">
+<td align="left">Wales</td>
+<td align="right">1.549</td>
+<td align="right">0.648</td>
+<td align="right">0.280</td>
+<td align="right">2.819</td>
+</tr>
+<tr class="even">
+<td align="left">Constant/Intercept</td>
+<td align="right">10.574</td>
+<td align="right">1.633</td>
+<td align="right">7.373</td>
+<td align="right">13.775</td>
+</tr>
+</tbody>
+</table>
+<table>
+<caption>% Conservative vote share change regression results (Data source: Chris Giles &amp; Gemma Tetlow)</caption>
+<thead>
+<tr class="header">
+<th align="left">varName</th>
+<th align="right">Coefficient</th>
+<th align="right">SE</th>
+<th align="right">lowerCI</th>
+<th align="right">upperCI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">% increase in turnout</td>
+<td align="right">-0.083</td>
+<td align="right">0.067</td>
+<td align="right">-0.214</td>
+<td align="right">0.049</td>
+</tr>
+<tr class="even">
+<td align="left">% leave EU</td>
+<td align="right">0.302</td>
+<td align="right">0.032</td>
+<td align="right">0.240</td>
+<td align="right">0.364</td>
+</tr>
+<tr class="odd">
+<td align="left">% Graduates</td>
+<td align="right">-0.105</td>
+<td align="right">0.036</td>
+<td align="right">-0.175</td>
+<td align="right">-0.035</td>
+</tr>
+<tr class="even">
+<td align="left">% 18-24</td>
+<td align="right">0.140</td>
+<td align="right">0.048</td>
+<td align="right">0.047</td>
+<td align="right">0.233</td>
+</tr>
+<tr class="odd">
+<td align="left">% 65+</td>
+<td align="right">0.179</td>
+<td align="right">0.043</td>
+<td align="right">0.094</td>
+<td align="right">0.264</td>
+</tr>
+<tr class="even">
+<td align="left">Scotland</td>
+<td align="right">11.937</td>
+<td align="right">0.921</td>
+<td align="right">10.132</td>
+<td align="right">13.741</td>
+</tr>
+<tr class="odd">
+<td align="left">Wales</td>
+<td align="right">0.925</td>
+<td align="right">0.575</td>
+<td align="right">-0.202</td>
+<td align="right">2.051</td>
+</tr>
+<tr class="even">
+<td align="left">Constant/Intercept</td>
+<td align="right">3.413</td>
+<td align="right">1.449</td>
+<td align="right">0.573</td>
+<td align="right">6.253</td>
+</tr>
+</tbody>
+</table>
+<table>
+<caption>% Liberal Democrat vote share change regression results (Data source: Chris Giles &amp; Gemma Tetlow)</caption>
+<thead>
+<tr class="header">
+<th align="left">varName</th>
+<th align="right">Coefficient</th>
+<th align="right">SE</th>
+<th align="right">lowerCI</th>
+<th align="right">upperCI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">% increase in turnout</td>
+<td align="right">-0.108</td>
+<td align="right">0.071</td>
+<td align="right">-0.247</td>
+<td align="right">0.031</td>
+</tr>
+<tr class="even">
+<td align="left">% leave EU</td>
+<td align="right">-0.024</td>
+<td align="right">0.033</td>
+<td align="right">-0.089</td>
+<td align="right">0.041</td>
+</tr>
+<tr class="odd">
+<td align="left">% Graduates</td>
+<td align="right">0.088</td>
+<td align="right">0.037</td>
+<td align="right">0.015</td>
+<td align="right">0.161</td>
+</tr>
+<tr class="even">
+<td align="left">% 18-24</td>
+<td align="right">-0.131</td>
+<td align="right">0.050</td>
+<td align="right">-0.228</td>
+<td align="right">-0.033</td>
+</tr>
+<tr class="odd">
+<td align="left">% 65+</td>
+<td align="right">0.035</td>
+<td align="right">0.045</td>
+<td align="right">-0.054</td>
+<td align="right">0.124</td>
+</tr>
+<tr class="even">
+<td align="left">Scotland</td>
+<td align="right">-1.293</td>
+<td align="right">0.967</td>
+<td align="right">-3.188</td>
+<td align="right">0.602</td>
+</tr>
+<tr class="odd">
+<td align="left">Wales</td>
+<td align="right">-1.308</td>
+<td align="right">0.601</td>
+<td align="right">-2.486</td>
+<td align="right">-0.129</td>
+</tr>
+<tr class="even">
+<td align="left">Constant/Intercept</td>
+<td align="right">-1.916</td>
+<td align="right">1.516</td>
+<td align="right">-4.888</td>
+<td align="right">1.056</td>
+</tr>
+</tbody>
+</table>
+<p>Yes, I know this is no easier to read than the original but there is a reason they look like this. It makes them easier to plot (below) and I’ve only put them there so you can check them against the originals if you want to.</p>
+<p>What do these numbers mean? Well:</p>
+<ul>
+<li>the coefficient is the strength of the correlation between the variable (e.g. % who voted to leave the EU) and the % point change in vote share. As this is a multivariate regression model, this is a net correlation which takes account of (controls for) the other variables in the model. As an example, in the Labour vote share model, we can say that an increase of 1 unit in the % who voted to leave the EU correlates with a decrease of 0.127 % points (Coefficient = -0.127) in Labour’s vote share. Such correlations are commonly termed ‘effects’ although this can be slightly confusing - we mean statistical, not causal effects;</li>
+<li>the intercept is the ‘average’ affect across all constituencies - thus in the Labour model we can see there was an average increase of 10.6 % points in Labour vote share;</li>
+<li>the SE or standard error is a measure of the uncertainty of this coefficient;</li>
+<li>the confidence intervals are calculated from the Coefficient and the standard error, in this case using R’s <code>qnorm</code> function. Without getting entangled in recent debates about <a href="http://www.nature.com/news/statisticians-issue-warning-over-misuse-of-p-values-1.19503">p values and confidence intervals</a>, if 0 is in between the lower and upper confidence intervals, then we conclude that the effect is not statistically sigificant. As an example we would conclude that the effect for % increase in turnout in the Labour vote change model is not statistically significant as the confidence intervals stretch from -0.015 to 0.285.</li>
+</ul>
+<p>Now, before we go any further it’s worth saying:</p>
+<ul>
+<li>these models only contain a few variables - they may suffer from <a href="http://www3.wabash.edu/econometrics/EconometricsBook/chap18.htm">omitted variable bias</a> as a number of twitter commentators noted &amp; Chris acknowledged;</li>
+<li>there may well be <a href="http://www.statsmakemecry.com/smmctheblog/confusing-stats-terms-explained-heteroscedasticity-heteroske.html">heteroskedasticity</a> (you try saying that after an election all-nighter) which could affect the standard errors;</li>
+<li>these are <em>area</em> level models - they are not models of individual behaviour but of the relationships between area (constituency) level aggregates;</li>
+<li>they are <em>descriptive</em> models which show <em>correlations</em> not causal relationships.</li>
+</ul>
+</div>
+<div id="regression-results-plots" class="section level1">
+<h1><span class="header-section-number">3</span>  Regression results plots</h1>
+<p>That said, there are some interesting things to see in the three charts that follow. The first chart shows the coefficients and 95% confidence intervals for all variables in all three models, the second leaves out the intercept and the country variables to allow us to focus more easily on the other variables with much smaller ‘effects’.</p>
+<p><img src="voteShareChangeRegressionsGraphed_files/figure-html/allVariablesPlot-1.png" /><!-- --></p>
+<p>The first chart shows quite clearly how Scotland, and specifically <a href="https://twitter.com/RuthDavidsonMSP">Ruth Davidson</a> saved Theresa May’s bacon. In contrast the swing away from Labour in Scotland is also quite marked. Missing, of course, is a model for the SNP which would need to be run for Scotland only. Welsh constituencies also show a swing to the Conservatives (although not statistically significant in this model) and slightly more strongly to Labour.</p>
+<p><img src="voteShareChangeRegressionsGraphed_files/figure-html/noInterceptCountryPlot-1.png" /><!-- --></p>
+<p>The second chart, which excludes the large intercept and country effects cleary shows the relatively higher level of uncertainty of the remaining variables. In most cases the 95% confidence intervals are wide and in some cases include 0 indicating non-significance.</p>
+<p>The results suggest that higher % leave vote shares correlate with an increase in Conservative vote share but a decrease for Labour. Interestingly there only appears to be a small (and non significant) negative effect for the Liberal Democrats.</p>
+<p>The % of graduates is associated with an increase in vote share for the Liberal Democrats but a decrease for the other two (although the confidence intervals are wide) and the % of residents aged 65+ is strongly correlated with an increase in Conservative vote share.</p>
+<p>Increases in turnout are associated with an increase in Labour vote share (and a decrease for the other two) but the model suggests that these effects were highly varied and thus not statistically significant. This may be because the main effect of increased turnout was actually an increase in voting by 18-24 year olds which this model suggest <em>was</em> significantly associated with a vote share increase for both the Conservatives and, more strongly, Labour.</p>
+</div>
+<div id="what-would-be-interesting-to-do-next" class="section level1">
+<h1><span class="header-section-number">4</span> What would be interesting to do next?</h1>
+<p>I am no political scientist but the following spring to mind:</p>
+<ul>
+<li>How does change in the UKIP vote share correlate with changes in the others?</li>
+<li>Has the UKIP vote returned to Labour in strong Labour seats that voted ‘Leave’?</li>
+<li>Does a ‘Scotland only’ model, which can include the SNP, show different relationships?</li>
+</ul>
+<p>Over to the experts :-)</p>
+</div>
+<div id="about" class="section level1">
+<h1><span class="header-section-number">5</span> About</h1>
+<p>Analysis completed in: 2.79 seconds using <a href="https://cran.r-project.org/package=knitr">knitr</a> in <a href="http://www.rstudio.com">RStudio</a> with R version 3.4.0 (2017-04-21) running on x86_64-apple-darwin15.6.0.</p>
+<p>R packages used:</p>
+<ul>
+<li>base R - for the basics <span class="citation">(R Core Team 2016)</span></li>
+<li>data.table - for fast (big) data handling <span class="citation">(Dowle et al. 2015)</span></li>
+<li>ggplot2 - for slick graphics <span class="citation">(Wickham 2009)</span></li>
+<li>knitr - to create this document <span class="citation">(Xie 2016)</span></li>
+</ul>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-data.table">
+<p>Dowle, M, A Srinivasan, T Short, S Lianoglou with contributions from R Saporta, and E Antonyan. 2015. <em>Data.table: Extension of Data.frame</em>. <a href="https://CRAN.R-project.org/package=data.table" class="uri">https://CRAN.R-project.org/package=data.table</a>.</p>
+</div>
+<div id="ref-baseR">
+<p>R Core Team. 2016. <em>R: A Language and Environment for Statistical Computing</em>. Vienna, Austria: R Foundation for Statistical Computing. <a href="https://www.R-project.org/" class="uri">https://www.R-project.org/</a>.</p>
+</div>
+<div id="ref-ggplot2">
+<p>Wickham, Hadley. 2009. <em>Ggplot2: Elegant Graphics for Data Analysis</em>. Springer-Verlag New York. <a href="http://ggplot2.org" class="uri">http://ggplot2.org</a>.</p>
+</div>
+<div id="ref-knitr">
+<p>Xie, Yihui. 2016. <em>Knitr: A General-Purpose Package for Dynamic Report Generation in R</em>. <a href="https://CRAN.R-project.org/package=knitr" class="uri">https://CRAN.R-project.org/package=knitr</a>.</p>
+</div>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

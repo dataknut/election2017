@@ -1,0 +1,181 @@
+---
+title: 'UK General Election 2017: Visualising Vote Change Models'
+author: Ben Anderson (b.anderson@soton.ac.uk `@dataknut`)
+date: 'Last run at: `r Sys.time()`'
+output:
+  html_document:
+    keep_md: yes
+    number_sections: yes
+    self_contained: no
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+bibliography: ~/bibliography.bib
+---
+```{r knitrSetUp, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE) # echo code so reader can see what is happening
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(fig_caption = TRUE)
+knitr::opts_chunk$set(fig_height = 6) # default, make it bigger to stretch vertical axis
+knitr::opts_chunk$set(fig_width = 8) # full width
+knitr::opts_chunk$set(tidy = TRUE) # tidy up code in case echo = TRUE
+
+
+# Set start time ----
+startTime <- Sys.time()
+
+library(data.table)
+library(knitr)
+library(ggplot2)
+```
+
+No doubt political science journals will soon be awash with papers explaining how the 8th June UK General Election 2017 results came to be. While we wait for these to wend their way through the writing and reviewing process, the FT's [Chris Giles](https://twitter.com/ChrisGiles_) and [Gemma Tetlow](https://twitter.com/gemmatetlow) provided us with some early insights as the results and data emerged on June 9th.
+
+# Scatter plots
+
+In particular they [tweeted](https://twitter.com/ChrisGiles_/status/873178948309577728) analysis of the percentage point change in vote share (so the change in the % of vote) in most of the constituencies that had declared to date. As an example the chart below shows the % point Conservative vote change against the % who voted to leave the EU. A pretty clear linear correlation with a few interesting looking outliers...
+
+![% point Conservative vote change vs % voted to leave EU (Source: Chris Giles & Gemma Tetlow)](https://pbs.twimg.com/media/DB4nnvBXcAIJmQ1.jpg)
+
+# Regression tables
+More interestingly (for me) Chris also tweeted the [STATA regression model results](https://twitter.com/ChrisGiles_/status/873180690296307713/photo/1) that were used to draw the regression line in the above chart, in several other charts and in a series of [highlights](https://twitter.com/ChrisGiles_/status/873178948309577728) they tweeted.
+
+Now I'm as fond of regression tables as the next data knut but I wondered if there might be a better way to look at them. Thanks to Chris's table-tweet, and relying on [Ben Goldacre's interpretation](https://twitter.com/bengoldacre/status/873210437327867905) of the variable labels, here are the basic results:
+
+```{r basicResults}
+regResultsDT <- fread("data/ChrisGiles_regressions.csv")
+
+regResultsDT <- regResultsDT[, lowerCI := Coefficient - qnorm(0.975)*SE]
+
+regResultsDT <- regResultsDT[, upperCI := Coefficient + qnorm(0.975)*SE]
+
+kable(caption = "% Labour vote share change regression results (Data source: Chris Giles & Gemma Tetlow)",
+      regResultsDT[Model == "% Labour change", 
+                   .(varName, Coefficient = round(Coefficient,3), 
+                     SE = round(SE,3), lowerCI = round(lowerCI,3), upperCI = round(upperCI,3))
+                   ]
+      )
+
+kable(caption = "% Conservative vote share change regression results (Data source: Chris Giles & Gemma Tetlow)",
+      regResultsDT[Model == "% Conservative change", 
+                   .(varName, Coefficient = round(Coefficient,3), 
+                     SE = round(SE,3), lowerCI = round(lowerCI,3), upperCI = round(upperCI,3))
+                   ]
+      )
+
+kable(caption = "% Liberal Democrat vote share change regression results (Data source: Chris Giles & Gemma Tetlow)",
+      regResultsDT[Model == "% Liberal Democrat change",
+                                      .(varName, Coefficient = round(Coefficient,3), 
+                     SE = round(SE,3), lowerCI = round(lowerCI,3), upperCI = round(upperCI,3))
+                   ]
+      )
+```
+
+Yes, I know this is no easier to read than the original but there is a reason they look like this. It makes them easier to plot (below) and I've only put them there so you can check them against the originals if you want to.
+
+What do these numbers mean? Well:
+
+ * the coefficient is the strength of the correlation between the variable (e.g. % who voted to leave the EU) and the % point change in vote share. As this is a multivariate regression model, this is a net correlation which takes account of (controls for) the other variables in the model. As an example, in the Labour vote share model, we can say that an increase of 1 unit in the % who voted to leave the EU correlates with a decrease of 0.127 % points (Coefficient = -0.127) in Labour's vote share. Such correlations are commonly termed 'effects' although this can be slightly confusing - we mean statistical, not causal effects;
+ * the intercept is the 'average' affect across all constituencies - thus in the Labour model we can see there was an average increase of 10.6 % points in Labour vote share;
+ * the SE or standard error is a measure of the uncertainty of this coefficient;
+ * the confidence intervals are calculated from the Coefficient and the standard error, in this case using R's `qnorm` function. Without getting entangled in recent debates about [p values and confidence intervals](http://www.nature.com/news/statisticians-issue-warning-over-misuse-of-p-values-1.19503), if 0 is in between the lower and upper confidence intervals, then we conclude that the effect is not statistically sigificant. As an example we would conclude that the effect for % increase in turnout in the Labour vote change model is not statistically significant as the confidence intervals stretch from -0.015 to 0.285.
+
+Now, before we go any further it's worth saying:
+
+ * these models only contain a few variables - they may suffer from [omitted variable bias](http://www3.wabash.edu/econometrics/EconometricsBook/chap18.htm) as a number of twitter commentators noted & Chris acknowledged;
+ * there may well be [heteroskedasticity](http://www.statsmakemecry.com/smmctheblog/confusing-stats-terms-explained-heteroscedasticity-heteroske.html) (you try saying that after an election all-nighter) which could affect the standard errors;
+ * these are _area_ level models - they are not models of individual behaviour but of the relationships between area (constituency) level aggregates;
+ * they are _descriptive_ models which show _correlations_ not causal relationships.
+
+# Regression results plots
+
+That said, there are some interesting things to see in the three charts that follow. The first chart shows the coefficients and 95% confidence intervals for all variables in all three models, the second leaves out the intercept and the country variables to allow us to focus more easily on the other variables with much smaller 'effects'.
+
+```{r allVariablesPlot, fig.caption = "UK General Election 2017: % point vote share change regression results"}
+myCaption <- "Data source: Chris Giles & Gemma Tetlow"
+
+# re-order the factors to make the graphs slightly more legible
+regResultsDT <- regResultsDT[, varName := as.factor(varName)]
+regResultsDT <- regResultsDT[, varNameRo := relevel(varName, "% increase in turnout")]
+regResultsDT <- regResultsDT[, varNameRo := relevel(varNameRo, "Wales")]
+regResultsDT <- regResultsDT[, varNameRo := relevel(varNameRo, "Scotland")]
+regResultsDT <- regResultsDT[, varNameRo := relevel(varNameRo, "Constant/Intercept")]
+
+myPlot <- ggplot(regResultsDT, aes(x=varNameRo, y=Coefficient, fill=Model, group = Model)) + 
+  geom_bar(position=position_dodge(), stat="identity") +
+  coord_flip() +
+  geom_errorbar(aes(ymin=lowerCI, ymax=upperCI),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9)
+  ) +
+  theme(legend.position = "bottom") +
+  theme(legend.title = element_blank()) +
+  labs(caption=myCaption,
+       x = "Variable",
+       y = "Coefficient"
+  ) 
+
+myPlot + scale_fill_manual(values=c("blue", "red", "orange"))
+
+```
+
+The first chart shows quite clearly how Scotland, and specifically [Ruth Davidson](https://twitter.com/RuthDavidsonMSP) saved Theresa May's bacon. In contrast the swing away from Labour in Scotland is also quite marked. Missing, of course, is a model for the SNP which would need to be run for Scotland only. Welsh constituencies also show a swing to the Conservatives (although not statistically significant in this model) and slightly more strongly to Labour.  
+
+```{r noInterceptCountryPlot, fig.caption = "UK General Election 2017: % point vote share change regression results"}
+myCaption <- "Intercept & country excluded\nData source: Chris Giles & Gemma Tetlow"
+
+myPlot <- ggplot(regResultsDT[varName != "Constant/Intercept" & 
+                      varName != "Scotland" & 
+                      varName != "Wales"], aes(x=varNameRo, y=Coefficient, fill=Model, group=Model)) + 
+    geom_bar(position=position_dodge(), stat="identity") +
+  coord_flip() +
+    geom_errorbar(aes(ymin=lowerCI, ymax=upperCI),
+                  width=.2,                    # Width of the error bars
+                  position=position_dodge(.9)
+                  ) +
+  theme(legend.position = "bottom") +
+  theme(legend.title = element_blank()) +
+  labs(caption=myCaption,
+       x = "Variable",
+       y = "Coefficient"
+  )
+
+myPlot + scale_fill_manual(values=c("blue", "red", "orange"))
+```
+
+The second chart, which excludes the large intercept and country effects cleary shows the relatively higher level of uncertainty of the remaining variables. In most cases the 95% confidence intervals are wide and in some cases include 0 indicating non-significance.
+
+The results suggest that higher % leave vote shares correlate with an increase in Conservative vote share but a decrease for Labour. Interestingly there only appears to be a small (and non significant) negative effect for the Liberal Democrats.
+
+The % of graduates is associated with an increase in vote share for the Liberal Democrats but a decrease for the other two (although the confidence intervals are wide) and the % of residents aged 65+ is strongly correlated with an increase in Conservative vote share.
+
+Increases in turnout are associated with an increase in Labour vote share (and a decrease for the other two) but the model suggests that these effects were highly varied and thus not statistically significant. This may be because the main effect of increased turnout was actually an increase in voting by 18-24 year olds which this model suggest _was_ significantly associated with a vote share increase for both the Conservatives and, more strongly, Labour.
+
+# What would be interesting to do next?
+
+I am no political scientist but the following spring to mind:
+
+ * How does change in the UKIP vote share correlate with changes in the others?
+ * Has the UKIP vote returned to Labour in strong Labour seats that voted 'Leave'?
+ * Does a 'Scotland only' model, which can include the SNP, show different relationships?
+
+Over to the experts :-)
+ 
+# About
+
+Analysis completed in: `r round(Sys.time() - startTime, 2)` seconds using [knitr](https://cran.r-project.org/package=knitr) in [RStudio](http://www.rstudio.com) with `r R.version.string` running on `r R.version$platform`.
+
+R packages used:
+
+ * base R - for the basics [@baseR]
+ * data.table - for fast (big) data handling [@data.table]
+ * ggplot2 - for slick graphics [@ggplot2]
+ * knitr - to create this document [@knitr]
+                     
+# References
